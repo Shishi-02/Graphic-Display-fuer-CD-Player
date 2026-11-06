@@ -1,1 +1,2 @@
-# LCD-Display-fuer-CD-Player
+# Graphic
+-Display-fuer-CD-Player
