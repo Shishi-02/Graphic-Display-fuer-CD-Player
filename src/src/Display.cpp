@@ -1,4 +1,5 @@
 #include "Display.h"
+#include "CommunicationConfig.h"
 
 #include <Arduino.h>
 #include <gfx4desp32_gen4_ESP32_35CT.h>
@@ -161,6 +162,9 @@ int lastProgressDot = -1;
 uint32_t lastTouchPollMs = 0;
 uint32_t lastRenderMs = 0;
 bool touchHeld = false;
+PlayerCommand heldKey = PlayerCommand::None;
+uint32_t heldSince = 0;
+bool longSent = false;
 
 // Gefuelltes abgerundetes Feld aus vorhandenen Bibliotheksprimitiven.
 void roundedPanel(int left, int top, int right, int bottom, int radius,
@@ -258,7 +262,7 @@ void drawControl(PlayerCommand key, int x, uint16_t color) {
       gfx.RectangleFilled(x - 18, y + 11, x + 18, y + 17, color);
       break;
 
-    case PlayerCommand::None:
+    default:
       break;
   }
 }
@@ -485,24 +489,51 @@ void render(uint32_t nowMs) {
 }
 
 PlayerCommand pollTouch(uint32_t nowMs) {
-  if (static_cast<uint32_t>(nowMs - lastTouchPollMs) < TOUCH_INTERVAL_MS) {
+  if (static_cast<uint32_t>(nowMs - lastTouchPollMs) < TOUCH_INTERVAL_MS)
     return PlayerCommand::None;
-  }
   lastTouchPollMs = nowMs;
 
   gfx.touch_Update();
   const int pen = gfx.touch_GetPen();
-  if (pen == TOUCH_PRESSED && !touchHeld) {
-    touchHeld = true;
+  if (pen == TOUCH_PRESSED) {
     const int x = gfx.touch_GetX();
     const int y = gfx.touch_GetY();
-    if (x >= 0 && x < 480 && y >= BUTTON_TOP && y < 320) {
-      return CONTROL_KEYS[x * 7 / 480];
+    if (!touchHeld) {
+      touchHeld = true;
+      heldSince = nowMs;
+      longSent = false;
+      heldKey = PlayerCommand::None;
+      if (x >= 0 && x < 480 && y >= BUTTON_TOP && y < 320)
+        heldKey = CONTROL_KEYS[x * 7 / 480];
+      // Navigation und Repeat: kurz/long erst unterscheiden.
+      if (heldKey == PlayerCommand::Next ||
+          heldKey == PlayerCommand::Previous ||
+          heldKey == PlayerCommand::Loop) return PlayerCommand::None;
+      return heldKey;
     }
-  } else if (pen == TOUCH_RELEASED || pen == NOTOUCH) {
+    if (!longSent && uint32_t(nowMs - heldSince) >= CD_LONG_PRESS_MS) {
+      PlayerCommand longKey = PlayerCommand::None;
+      if (heldKey == PlayerCommand::Next) longKey = PlayerCommand::SearchFwdStart;
+      if (heldKey == PlayerCommand::Previous) longKey = PlayerCommand::SearchBwdStart;
+      if (heldKey == PlayerCommand::Loop) longKey = PlayerCommand::Shuffle;
+      if (longKey != PlayerCommand::None && Communication::enabled(longKey)) {
+        longSent = true;
+        return longKey;
+      }
+    }
+  } else if (touchHeld && (pen == TOUCH_RELEASED || pen == NOTOUCH)) {
     touchHeld = false;
+    const PlayerCommand key = heldKey;
+    heldKey = PlayerCommand::None;
+    if (longSent) {
+      longSent = false;
+      if (key == PlayerCommand::Next || key == PlayerCommand::Previous)
+        return PlayerCommand::SearchStop;
+      return PlayerCommand::None;
+    }
+    if (key == PlayerCommand::Next || key == PlayerCommand::Previous ||
+        key == PlayerCommand::Loop) return key;
   }
-
   return PlayerCommand::None;
 }
 
