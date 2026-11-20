@@ -3,6 +3,15 @@
 PlatformIO-Projekt fuer 4D Systems gen4-ESP32-35CT. Das vorhandene grafische Design
 mit Rollenziffern, Fortschrittsanzeige und sieben Bedienelementen ist erhalten.
 
+## Displayausrichtung (180 Grad)
+
+In `src/include/DisplayConfig.h` ist `CD_DISPLAY_ORIENTATION` standardmaessig
+auf `LANDSCAPE_R` gesetzt. Fuer die bisherige Ausrichtung den Wert auf
+`LANDSCAPE` aendern und neu bauen/flashen. Beide Modi verwenden 480 x 320 Pixel.
+Die GFX4dESP32-Bibliothek transformiert die Touch-Koordinaten entsprechend der
+Ausrichtung; die Anwendung spiegelt diese daher nicht erneut.
+Nach dem Flashen alle sieben Tasten sowie die Anzeige auf dem realen Modul pruefen.
+
 ## 1. Umschalten
 
 In `src/include/CommunicationConfig.h`:

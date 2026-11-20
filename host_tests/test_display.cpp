@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "Display.h"
+#include "DisplayConfig.h"
 #include "CommunicationConfig.h"
 #include "gfx4desp32_gen4_ESP32_35CT.h"
 #include <vector>
@@ -8,7 +9,7 @@
 uint32_t fakeNow=0;
 FakePort Serial, Serial0, Serial1;
 std::vector<std::string> queued;
-int fakePen=0,fakeX=0,fakeY=275;
+int fakePen=0,fakeX=0,fakeY=275,fakeOrientation=-1;
 void touch(int pen,int x,unsigned delta){
   fakePen=pen; fakeX=x; fakeNow+=delta;
   auto cmd=Display::pollTouch(fakeNow);
@@ -16,6 +17,7 @@ void touch(int pen,int x,unsigned delta){
 }
 int main(){
   Communication::begin(0); Display::begin();
+  assert(fakeOrientation == CD_DISPLAY_ORIENTATION);
   Serial.rx="STATE:PLAY\nTRACK:1\nTOTAL_TRACKS:17\nTRACK_ELAPSED:62\nTRACK_REMAINING:140\n";
   fakeNow=10; Communication::tick(fakeNow);
   Display::render(fakeNow);

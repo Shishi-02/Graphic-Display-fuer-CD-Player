@@ -1,4 +1,5 @@
 #include "Display.h"
+#include "DisplayConfig.h"
 #include "CommunicationConfig.h"
 
 #include <Arduino.h>
@@ -368,7 +369,10 @@ namespace Display {
 
 void begin() {
   gfx.begin();
-  gfx.Orientation(LANDSCAPE);
+  static_assert(CD_DISPLAY_ORIENTATION == LANDSCAPE ||
+                CD_DISPLAY_ORIENTATION == LANDSCAPE_R,
+                "CD-Player-Layout requires landscape orientation");
+  gfx.Orientation(CD_DISPLAY_ORIENTATION);
   gfx.ScrollEnable(false);
   gfx.BacklightOn(true);
   gfx.Font(FONT2);
