@@ -15,12 +15,7 @@ void loop() {
 
   Communication::tick(nowMs);
 
-  const PlayerCommand command =
-#if CD_AUTODEMO
-      Display::demoInput(nowMs);
-#else
-      Display::pollTouch(nowMs);
-#endif
+  const PlayerCommand command = Display::pollTouch(nowMs);
   if (command != PlayerCommand::None) {
     Communication::command(command, nowMs);
   }
